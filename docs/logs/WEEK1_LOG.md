@@ -39,5 +39,24 @@
 
 ---
 
-### Thursday (8/20): Systemd Services & Process Orchestration [NEXT]
-- Pending...
+### Thursday (8/20): Systemd Services & Process Orchestration [COMPLETE]
+- **Process Auditing & System Inspection:**
+  - Audited live process execution tree using `ps aux` and `htop`.
+  - Verified process identification (PID 1) assigned to `/usr/lib/systemd/systemd`.
+- **Hardware Telemetry Daemon Development:**
+  - Created Python telemetry script at `/opt/aiops/telemetry.py` targeting `/proc` filesystem and system kernel interfaces.
+  - Configured script to collect 1-minute CPU load averages (`os.getloadavg`), RAM usage via `/proc/meminfo`, and root partition storage via `shutil.disk_usage`.
+  - Structured output stream to emit standardized JSON telemetry objects over `stdout`.
+  - Set executable permissions via `chmod +x /opt/aiops/telemetry.py`.
+- **Systemd Unit File Configuration:**
+  - Authored system daemon specification file `/etc/systemd/system/aiops-telemetry.service`.
+  - Configured unit dependency chain (`After=network.target`) and execution targets (`ExecStart=/usr/bin/python3 /opt/aiops/telemetry.py`).
+  - Implemented automated fault recovery policies (`Restart=always`, `RestartSec=5`).
+  - Directed process output streams (`StandardOutput=journal`, `StandardError=journal`) to `journald`.
+- **Service Orchestration & Log Auditing:**
+  - Triggered systemd unit reload (`systemctl daemon-reload`) to register changes.
+  - Enabled and started background daemon (`systemctl enable --now aiops-telemetry.service`).
+  - Verified `active (running)` state and audited real-time log ingestion via `journalctl -u aiops-telemetry.service -f`.
+- **Repository Version Synchronization:**
+  - Mirrored live telemetry source (`telemetry.py`) and unit configuration (`aiops-telemetry.service`) into `~/aiops-control-plane/src/`.
+  - Staged, committed, and pushed Week 1 Day 3 artifacts to GitHub remote (`main`).
