@@ -7,7 +7,7 @@
 ---
 
 ## **MONTH 1: LINUX SYSTEMS ENGINEERING & CONTAINER FOUNDATIONS**
-**Core Objective:** Turn `lab-host` into a hardened, production-ready server and deploy Jellyfin as your anchor production service.
+**Core Objective:** Turn `lab-host` into a hardened, production-ready server and deploy a multi-service application stack (Jellyfin, Homarr, Syncthing, Wallabag, Watchtower).
 
 ### **Week 1: Hardening, Process Control, & Networking** *(Compressed 5-Day Schedule)*
 * **Tuesday (8/18): Initial Provisioning & Mesh Control [COMPLETE]**
@@ -29,50 +29,54 @@
 * **Friday (8/21): Network Isolation & Host Firewalls**
   * Port auditing: Map listening sockets using `ss -tulpn` and `netstat`.
   * Uncomplicated Firewall (`ufw`) configuration: Set default `deny ingress` / `allow egress` policies.
-  * Bind rules: Whitelist Tailscale interface (`tailscale0`), SSH traffic, and Jellyfin HTTP port (`8096`) on the local/mesh network while dropping public noise.
+  * Bind rules: Whitelist Tailscale interface (`tailscale0`) and SSH traffic while dropping public noise.
   * Deliverable: Host-level firewall active with all unneeded ingress ports locked down.
 * **Saturday & Sunday (8/22 - 8/23): Integration & Proof-of-Work Verification**
   * Initialize Git repository `~/aiops-control-plane`.
   * Write `WEEK1_LOG.md` detailing SSH configs, systemd unit files, and firewall rules.
   * Push Week 1 code and documentation to GitHub repository.
 
-### **Week 2: Networking Mechanics, Storage & Media Drive Mounting**
+### **Week 2: Networking Mechanics, Storage, & Environment Setup**
 * **DNS & Subnets:** Inspect `/etc/resolv.conf`, systemd-resolved, loopback routing, and CIDR blocks.
 * **Kernel Resource Control:** Study process limits, cgroups v2, and system environment loading (`/etc/environment`, `~/.bashrc`).
-* **Media Storage Mounting:** Mount secondary storage drives/external media partitions, inspect filesystem types (`ext4`), configure dedicated media directories (`/mnt/media/music`, `/mnt/media/movies`), and edit `/etc/fstab` for persistent auto-mounting across reboots.
-* **Deliverable:** Automated storage mount script and verified `/etc/fstab` configuration for media storage.
+* **Storage Mounting:** Mount secondary storage drives, inspect filesystem types (`ext4`), set up dedicated mount points (`/mnt/media` for Jellyfin and `/mnt/sync` for Syncthing), and edit `/etc/fstab` for persistent auto-mounting across reboots.
+* **Deliverable:** Automated storage mount script and verified `/etc/fstab` configuration.
 
-### **Week 3: Core Docker Engine Architecture & Jellyfin Standalone**
+### **Week 3: Core Docker Engine Architecture & Standalone Deployments**
 * **Docker Foundations:** Install Docker Engine & Docker CLI; add non-root user to `docker` group.
 * **Image Construction:** Write production `Dockerfile` manifests (base images, layer optimization, multi-stage builds).
-* **Container Mechanics & Jellyfin Launch:** Run Jellyfin in Docker via CLI (`docker run`), mapping host media directories, GPU hardware acceleration parameters (VAAPI/NVENC), and persistent configuration volumes. Practice lifecycle management (`stop`, `exec`, `inspect`, `logs`).
-* **Deliverable:** Fully functional, standalone Jellyfin media server container accessing host storage.
+* **Container Mechanics:** Practice running standalone containers (`docker run`) with bind mounts and port mappings (Jellyfin, Syncthing). Master container lifecycle management (`stop`, `exec`, `inspect`, `logs`).
+* **Deliverable:** Multi-stage Dockerfile packaging a custom Python app alongside verified standalone container instances.
 
-### **Week 4: Multi-Container Compose Orchestration (Jellyfin Stack)**
-* **Docker Compose:** Write `docker-compose.yml` orchestrating Jellyfin alongside support services (e.g., custom web dashboards, media indexers).
+### **Week 4: Multi-Container Compose Orchestration (Core Stack Deployment)**
+* **Docker Compose:** Write a unified `docker-compose.yml` orchestrating your complete homelab stack:
+  * **Jellyfin:** Media streaming server accessing `/mnt/media`.
+  * **Homarr:** Unified dashboard displaying health gauges and active links to all stack services.
+  * **Syncthing:** Automated background file synchronization node mapping `/mnt/sync`.
+  * **Watchtower:** Automated container maintenance utility inspecting local Docker socket.
 * **Container Networking:** Configure isolated bridge networks, internal service discovery, and DNS aliases.
-* **Persistent Volumes:** Bind mounts (for host media access) vs. Docker named volumes (for Jellyfin database and cache state retention).
-* **Deliverable:** Production `docker-compose.yml` running Jellyfin and supporting containers with persistent storage and auto-restart policies.
+* **Persistent Volumes:** Bind mounts (for host media/sync storage) vs. Docker named volumes (for service state retention).
+* **Deliverable:** Fully functional `docker-compose.yml` stack running Jellyfin, Homarr, Syncthing, and Watchtower.
 
 ---
 
-## **MONTH 2: TELEMETRY ENGINE & REAL SERVICE MONITORING**
-**Core Objective:** Build a real-time system monitoring engine using Python, PostgreSQL, and FastAPI that tracks host and Jellyfin performance.
+## **MONTH 2: TELEMETRY ENGINE & API SERVICES**
+**Core Objective:** Build a real-time system monitoring engine using Python, PostgreSQL, and FastAPI that tracks host and stack performance, and introduce Wallabag.
 
-* **Week 5:** PostgreSQL database containerization, schemas, indices, and persistent volumes for storing metrics.
-* **Week 6:** Python system telemetry collector using `psutil` (monitoring real CPU spikes during transcoding, RAM usage, disk I/O on `/mnt/media`, and network streaming loads).
-* **Week 7:** FastAPI REST engine development, route definitions, and Pydantic data validation schemas to expose metric endpoints.
+* **Week 5:** PostgreSQL database containerization, schemas, indices, and persistent volumes. Integrate **Wallabag** (self-hosted read-later manager) to utilize the shared PostgreSQL database instance.
+* **Week 6:** Python system telemetry collector using `psutil` (monitoring CPU usage during Jellyfin transcodes, RAM, disk I/O on `/mnt/media` and `/mnt/sync`, and network traffic).
+* **Week 7:** FastAPI REST engine development, route definitions, and Pydantic data validation schemas to expose metric endpoints to Homarr or external consumers.
 * **Week 8:** Database ORM integration (SQLAlchemy/SQLModel) and automated API endpoint testing.
 
 ---
 
 ## **MONTH 3: CACHING & ADVANCED NETWORKING**
-**Core Objective:** Implement high-speed caching layers and reverse proxy traffic control for Jellyfin and API services.
+**Core Objective:** Implement high-speed caching layers and reverse proxy traffic control across all services.
 
 * **Week 9:** Redis caching integration for API query response acceleration.
-* **Week 10:** Reverse Proxy architecture using Caddy/Nginx for TLS termination, routing `jellyfin.local` or Tailscale traffic cleanly on port 80/443 without needing port numbers.
-* **Week 11:** Asynchronous task processing using Celery / Redis background workers (e.g., processing media library telemetry or generating playback reports).
-* **Week 12:** System integration testing, performance profiling, and memory leak analysis under heavy streaming loads.
+* **Week 10:** Reverse Proxy architecture using Caddy/Nginx for TLS termination, routing clean local/Tailscale URLs (`jellyfin.local`, `homarr.local`, `wallabag.local`, `syncthing.local`) without exposing raw port numbers.
+* **Week 11:** Asynchronous task processing using Celery / Redis background workers (e.g., generating playback reports or handling media catalog indexing).
+* **Week 12:** System integration testing, performance profiling, and memory leak analysis across all running containers under heavy stream and sync loads.
 
 ---
 
@@ -86,20 +90,20 @@
 
 ---
 
-## **MONTH 5: LOCAL AI ORCHESTRATION & JELLYFIN LOG ANALYSIS**
-**Core Objective:** Deploy local offline AI models and use them to inspect server logs and system health.
+## **MONTH 5: LOCAL AI ORCHESTRATION & LOG DIAGNOSTICS**
+**Core Objective:** Deploy local offline AI models and use them to inspect server logs and system health across your application stack.
 
 * **Week 17:** Ollama local model hosting (Llama 3 / Mistral) running natively on host hardware.
 * **Week 18:** Vector Database deployment (Qdrant / ChromaDB) and text embedding workflows.
-* **Week 19:** Document Parsing & Context Injection: Vectorizing system logs, Jellyfin log files, markdown docs, and API specs.
-* **Week 20:** Open WebUI integration + Retrieval-Augmented Generation (RAG) agent construction (e.g., asking local AI: *"Why did Jellyfin transcode stall at 8 PM?"*).
+* **Week 19:** Document Parsing & Context Injection: Vectorizing system logs, Docker container logs (Jellyfin, Syncthing, Wallabag), markdown docs, and API specs.
+* **Week 20:** Open WebUI integration + Retrieval-Augmented Generation (RAG) agent construction (e.g., querying local AI: *"Why did Syncthing fail to sync at 3 PM?"* or *"Analyze Jellyfin transcode errors from last night"*).
 
 ---
 
 ## **MONTH 6: CHAOS ENGINEERING, RECOVERY, & CAPSTONE SIGN-OFF**
 **Core Objective:** Test platform resiliency, automate full disaster recovery, and package final portfolio.
 
-* **Week 21:** Chaos testing: Simulating network drops, streaming OOM crashes, container failures, and disk exhaustion on `/mnt/media`.
-* **Week 22:** Automated backup engine: PostgreSQL dumps, Jellyfin configuration snapshots, and offsite automated syncing.
-* **Week 23:** Complete platform dashboard integration (showing system health, Jellyfin status, and AI query console).
+* **Week 21:** Chaos testing: Simulating network drops, OOM crashes, container failures, disk exhaustion, and Watchtower auto-recovery.
+* **Week 22:** Automated backup engine: PostgreSQL dumps (Wallabag/Telemetry), Syncthing state snapshots, Jellyfin configuration backups, and offsite automated syncing.
+* **Week 23:** Complete platform dashboard integration (Homarr displaying live telemetry metrics, container health, and AI query console).
 * **Week 24:** Final portfolio sign-off, system documentation publishing, and AWS CCP examination.
