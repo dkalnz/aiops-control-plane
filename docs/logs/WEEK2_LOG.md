@@ -35,33 +35,21 @@
 ---
 
 ### Module 3: Filesystem Architecture, Mounting, & Persistence
-* **Target Landing Directory Preparation:**
-  * Created host landing target mount directories for future service container storage:
-    * `/mnt/media` (Designated for Jellyfin streaming storage)
+* **Target Storage Directory Preparation & Permission Hardening:**
+  * Created dedicated host landing target directories on primary NVMe storage to prepare for isolated service container data paths:
+    * `/mnt/media` (Designated for Jellyfin media library streaming)
     * `/mnt/sync` (Designated for Syncthing state synchronization)
-  * Audited POSIX directory ownership and security boundaries using `ls -ld /mnt/media /mnt/sync`, confirming standard `root:root` permissions (`755`).
-* **Virtual Storage Image Allocation & Loopback Mechanics:**
-  * Allocated two 2-Gigabyte raw storage images under `/var/tmp/` using block duplication:
-    * `/var/tmp/media_disk.img`
-    * `/var/tmp/sync_disk.img`
-  * Attached raw images to virtual loopback block devices using `losetup -fP`, creating non-destructive practice targets (`/dev/loop25` and `/dev/loop26`) to safely evaluate filesystem formatting without risking primary OS disk partitions.
-* **Filesystem Formatting (`ext4`) & UUID Extraction:**
-  * Formatted loopback block devices with the standard Linux `ext4` filesystem using `mkfs.ext4`.
-  * Extracted non-shifting Universally Unique Identifiers (UUIDs) via `sudo blkid`:
-    * `/dev/loop25`: `UUID="ee9d4c6c-6bd4-4b68-bfe8-25c0545ce5c5"`
-    * `/dev/loop26`: `UUID="8237b809-c951-4ce8-a0a8-d6586bc95dcf"`
-* **Persistent Auto-Mounting Engineering (`/etc/fstab`):**
-  * Created safety backup of system mount configuration (`sudo cp /etc/fstab /etc/fstab.bak`).
-  * Configured reboot-safe entries in `/etc/fstab` using UUID selectors and performance mount options (`defaults,noatime`):
-    ```text
-    UUID=ee9d4c6c-6bd4-4b68-bfe8-25c0545ce5c5  /mnt/media  ext4  defaults,noatime  0  2
-    UUID=8237b809-c951-4ce8-a0a8-d6586bc95dcf  /mnt/sync   ext4  defaults,noatime  0  2
-    ```
-  * Reloaded systemd in-memory mount units (`sudo systemctl daemon-reload`) and verified syntax execution safety using `sudo mount -a`.
-  * Verified active mount state, metadata overhead, and filesystem capacities using `df -h /mnt/media /mnt/sync`.
-* **Unmount Fallback & Sandbox Teardown:**
-  * Tested live unmounting via `sudo umount /mnt/media /mnt/sync` and verified directory target fallback mechanics back to primary root partition (`/dev/nvme0n1p2`).
-  * Detached loopback devices (`losetup -d`), purged temporary practice images, and sanitized `/etc/fstab` in preparation for Week 3 Docker deployment.
+  * Applied POSIX user/group ownership modifications using `sudo chown -R $USER:$USER /mnt/media /mnt/sync`, transferring directory inode ownership from `root:root` to `dkalnz:dkalnz` (`755`) to enforce the Principle of Least Privilege and enable non-root application execution.
+* **Practice Loopback Sandbox Execution (Archived Target):**
+  * Evaluated non-shifting Universally Unique Identifiers (UUIDs) and `/etc/fstab` automounting workflows using temporary loopback disk images (`/var/tmp/media_disk.img` and `/var/tmp/sync_disk.img`).
+  * Tested live unmounting via `sudo umount`, detached loopback target nodes (`losetup -d`), and sanitized `/etc/fstab` to preserve clean native filesystem execution on primary NVMe block storage.
+* **Automated Storage Validation Engine (`scripts/mount_validator.sh`):**
+  * Authored an automated, idempotent Bash validation script with defensive runtime flags (`set -euo pipefail`).
+  * Integrated multi-stage automated checks:
+    1. **VFS Path Resolution:** Queries `/proc/self/mountinfo` via `findmnt -T` to verify path accessibility on the active kernel filesystem table.
+    2. **Filesystem Superblock Audit:** Verifies the underlying disk filesystem matches expected `ext4` parameters.
+    3. **I/O Read/Write Test:** Dynamically writes, evaluates, and removes a temporary test file (`.mount_test_tmp`) to confirm user write privileges and catch Read-Only (`ro`) kernel states.
+  * Configured deterministic POSIX exit codes (`0` for success, non-zero for specific failure paths) for future CI/CD pipeline integration.
 
 ---
 
@@ -69,5 +57,5 @@
 - [x] Verified local DNS stub resolution (`127.0.0.53`) and CIDR subnet topology map
 - [x] Audited kernel file descriptor limits (`ulimit`) and cgroup v2 resource hierarchies
 - [x] Standardized shell environment profile loading behaviors (`/etc/environment` vs `~/.bashrc`)
-- [x] Formatted `ext4` filesystems, extracted non-shifting UUIDs, and engineered safe `/etc/fstab` persistent mount rules
-- [x] Validated live mount/unmount fallback behaviors on host filesystem landing targets (`/mnt/media` and `/mnt/sync`)
+- [x] Provisioned `/mnt/media` and `/mnt/sync` host landing paths with non-root ownership (`dkalnz:dkalnz`)
+- [x] Engineered and validated automated storage validator script (`scripts/mount_validator.sh`)
